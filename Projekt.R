@@ -15,20 +15,22 @@ df <- subset(df, select = -c(X))
 # H1: Disney+ edastab k√µige v√§hem t√§iskasvanutele m√µeldud sisuga filme.
 
 # Eraldan vajalikud andmed, et kontrollida seda h√ºpoteesi. J√§tan alles ainult read, kus filmi vanusepiirang on 18+
-valik1 <- df %>% select(Age, Netflix, Hulu, Prime.Video) %>% filter(Age == "18+")
+valik1 <- df %>% select(Age, Netflix, Hulu, Prime.Video, Disney.) %>% filter(Age == "18+")
 
 # Loen kokku, mitu t√§isealistele m√µeldud filmi igal firmal on.
 netflix1 <- valik1 %>% filter(Netflix == 1) %>% count(Netflix)
 hulu1 <- valik1 %>% filter(Hulu == 1) %>% count(Hulu)
 amazon1 <- valik1 %>% filter(Prime.Video == 1) %>% count(Prime.Video)
+disney1 <- valik1 %>% filter(Disney. == 1) %>% count(Disney.)
 
 # Moodustan uue data frame saadud andmetest, et oleks lihtsam joonist teha.
-firmad <- c("Netflix", "Hulu", "Prime Video")
-sagedus <- c(netflix1$n, hulu1$n, amazon1$n)
+firmad <- c("Netflix", "Hulu", "Prime Video", "Disney+")
+sagedus <- c(netflix1$n, hulu1$n, amazon1$n, disney1$n)
 taiskasvanuteleMoeldud <- data.frame(firmad, sagedus)
 
 # Joonistan tulemused v√§lja
-h1 <- ggplot(taiskasvanuteleMoeldud, aes(x = firmad, y = sagedus, fill = firmad)) + geom_col() 
+h1 <- ggplot(taiskasvanuteleMoeldud, aes(x = firmad, y = sagedus, fill = firmad)) + geom_col()+ scale_fill_manual("Platvormid", values = c("Netflix"="red", "Hulu" = "green ", "Prime Video " = "orange", "Disney+ " = "skyblue"))
+h1_pie <- ggplot(taiskasvanuteleMoeldud, aes(x=firmad, y=sagedus, fill=firmad)) + geom_bar(stat="identity", width=1) + coord_polar("y",start=0)
 
 
 
@@ -65,7 +67,7 @@ Rotten.Tomates_mean_amazon = mean(amazon2$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
 Total_rating_amazon = (IMDb_mean_amazon + Rotten.Tomates_mean_amazon ) / 2
 
 IMDb_mean_disney = mean(disney2$IMDb,trim=0.5, na.rm=TRUE)
-Rotten.Tomates_mean_disney = mean(2$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
+Rotten.Tomates_mean_disney = mean(disney2$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
 Total_rating_disney = (IMDb_mean_disney + Rotten.Tomates_mean_disney ) / 2
 
 firmad2 <- c("Netflix IMDb", "Netlfix Rotten Tomatoes", "Hulu IMDb", "Hulu Rotten Tomatoes", "Prime Video IMDb", "Prime Video Rotten Tomatoes", "Disney+ IMDb", "Disney+ Rotten Tomatoes")
@@ -75,23 +77,59 @@ total_ratings <- c(Total_rating_netflix, Total_rating_hulu, Total_rating_amazon,
 
 rating <- data.frame(firmad2, ratingud2)
 total_ratings_df <- data.frame(firmad2_total, total_ratings )
-h2 <- ggplot(rating, aes(x= firmad2, y=ratingud2, fill=firmad2)) + geom_col() + scale_fill_manual("Platvormid", values = c("Netflix IMDb"="red","Netflix Rotten Tomatoes" = "red", "Hulu IMDb" = "green", "Hulu Rotten Tomatoes" = "green", "Prime Video IMDb" = "orange", "Prime Video Rotten Tomatoes" = "orange", "Disney+ IMDb" = "skyblue", "Disney+ Rotten Tomatoes" = "skyblue"))
+h2 <- ggplot(rating, aes(x= firmad2, y=ratingud2, fill=firmad2)) + geom_col() + scale_fill_manual("Platvormid", values = c("Netflix IMDb"="red","Netflix Rotten Tomatoes" = "red", "Hulu IMDb" = "green", "Hulu Rotten Tomatoes" = "green", "Prime Video IMDb" = "orange", "Prime Video Rotten Tomatoes" = "orange", "Disney+ IMDb" = "skyblue", "Disney+ Rotten Tomatoes" = "skyblue"))+ geom_text(aes(label=ratingud2),position=position_dodge(width = 0.9),vjust=-0.25) + ylim(0,100)
 h2_total <- ggplot(total_ratings_df, aes(x = firmad2_total, y= total_ratings, fill=firmad2_total)) + geom_col()
 
 # H3: Netflixi filmivalik on k√µige suurem.
-valik3 <- df %>% select(Age, Netflix, Hulu, Prime.Video) %>% filter(Age != "NA")
+valik3 <- df %>% select(Age, Netflix, Hulu, Prime.Video, Disney.) %>% filter(Age != "NA")
 netflix3 <- valik3 %>% filter(Netflix == 1) %>% count(Netflix)
 hulu3 <- valik3 %>% filter(Hulu == 1) %>% count(Hulu)
 amazon3 <- valik3 %>% filter(Prime.Video == 1) %>% count(Prime.Video)
+disney3 <- valik3 %>% filter(Disney. == 1) %>% count(Disney.)
 
-
-firmad3 <- c("Netflix", "Hulu", "Prime Video")
-sagedus3 <- c(netflix3$n, hulu3$n, amazon3$n)
+firmad3 <- c("Netflix", "Hulu", "Prime Video","Disney+")
+sagedus3 <- c(netflix3$n, hulu3$n, amazon3$n,disney3$n)
 filmiValik <- data.frame(firmad, sagedus3)
 
-h3 <- ggplot(filmiValik, aes(x = firmad3, y = sagedus3, fill = firmad)) + geom_col() 
+h3 <- ggplot(filmiValik, aes(x = firmad3, y = sagedus3, fill = firmad)) + geom_col()+ scale_fill_manual("Platvormid", values = c("Netflix"="red", "Hulu" = "green ", "Prime Video " = "orange", "Disney+ " = "skyblue"))
+
+
+# Kas vanusel ja rating-ul on korrelatsiooni?
+
+korr <- df %>% select(IMDb, Rotten.Tomatoes, Age)
+
+# Eemaldan "rating"-utelt vırdlusm‰‰rad. (x/10 .. x/100)
+korr$IMDb = substr(korr$IMDb,1,3)
+korr$Rotten.Tomatoes = substr(korr$Rotten.Tomatoes,1,2)
+
+# Muudan "rating" v‰‰rtused int-t¸¸biks
+korr$IMDb = as.double(korr$IMDb)
+korr$IMDb = korr$IMDb*10
+korr$Rotten.Tomatoes = as.double(korr$Rotten.Tomatoes)
+korr18 <- korr %>% filter(Age == "18+")
+korr16 <- korr %>% filter(Age == "16+")
+korr13 <- korr %>% filter(Age == "13+")
+korr7 <- korr %>% filter(Age == "7+")
+korrall <- korr %>% filter(Age == "all")
+
+IMDb_korr_mean18 = mean(korr18$IMDb,trim=0.5, na.rm=TRUE)
+IMDb_korr_mean16 = mean(korr16$IMDb,trim=0.5, na.rm=TRUE)
+IMDb_korr_mean13 = mean(korr13$IMDb,trim=0.5, na.rm=TRUE)
+IMDb_korr_mean7 = mean(korr7$IMDb,trim=0.5, na.rm=TRUE)
+IMDb_korr_meanall = mean(korrall$IMDb,trim=0.5, na.rm=TRUE)
+Rotten.Tomatoes_korr_mean18 = mean(korr18$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
+Rotten.Tomatoes_korr_mean16 = mean(korr16$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
+Rotten.Tomatoes_korr_mean13 = mean(korr13$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
+Rotten.Tomatoes_korr_mean7 = mean(korr7$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
+Rotten.Tomatoes_korr_meanall = mean(korrall$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
+korrelatsioonid <- c(IMDb_korr_mean18,IMDb_korr_mean16,IMDb_korr_mean13,IMDb_korr_mean7,IMDb_korr_meanall,Rotten.Tomatoes_korr_mean18,Rotten.Tomatoes_korr_mean16,Rotten.Tomatoes_korr_mean13,Rotten.Tomatoes_korr_mean7,Rotten.Tomatoes_korr_meanall)
+vanused <- c("18+","16+","13+","7+","all","NA")
+total_korr_mean = (IMDb_korr_mean+Rotten.Tomatoes_korr_mean)/2
+korrdf <- data.frame(age=rep(c("18+","16+","13+","7+","all","18+","16+","13+","7+","all"),each=10), korrelatsioonid)
+ggplot(korrdf, aes(x=age,y=total_korr_mean,fill=age))+ geom_bar(stat="identity")
 
 h1
+h1_pie
 h2
 h2_total
 h3
