@@ -1,15 +1,41 @@
-
-# EELT√ñ√ñ
 library(ggplot2)
 library(dplyr) 
+library(stringr)
+
+
+
 # Loen andmed sisse ja asendan k√µik t√ºhjad lahtrid NA-ga
 df <- read.csv("https://raw.githubusercontent.com/markovkristo/RProject/master/Filmid.csv", header = T, na.strings = c("","NA"))
 
-# Eemaldan ebavajalikud veerud. Mby peaks eemaldama kohe ka k√µik NA-d
-df <- subset(df, select = -c(X))
-#df <- na.omit(df)
+# Esmane andmekirjeldus
+summary(df)
+ncol(df)
+names(df)
+nrow(df)
+
+df <- subset(df, select = -c(X,Type)) # Eemaldan ebavajalikud tulbad
+
+# Viin IMDb ja Rotten Tomatoes-e reitingud samale tasemele.
+# Eemaldan "rating"-utelt vordlusmaarad. (x/10 .. x/100)
+df$IMDb = substr(df$IMDb,1,3)
+df$Rotten.Tomatoes = substr(df$Rotten.Tomatoes,1,2)
+
+df$IMDb = as.double(df$IMDb) # T√º√ºbiteisendus
+df$IMDb = df$IMDb*10
+df$Rotten.Tomatoes = as.double(df$Rotten.Tomatoes)
 
 
+# Kirjeldav statistika. 
+naVaba <- na.omit(df)
+kirjeldused <- naVaba %>% mutate(keskmine_reiting = (IMDb + Rotten.Tomatoes) / 2)
+
+
+kirjeldused <- kirjeldused %>% summarise(suurim_keskmine_reiting = max(keskmine_reiting),
+                                     koigi_keskmine_reiting = mean(keskmine_reiting),
+                                     vaikseim_keskmine_reiting = min(keskmine_reiting),
+                                     pikim_film = max(Runtime),
+                                     keskmine_film = mean(Runtime),
+                                     luhim_film = min(Runtime))
 
 
 # H1: Disney+ edastab k√µige v√§hem t√§iskasvanutele m√µeldud sisuga filme.
@@ -18,36 +44,37 @@ df <- subset(df, select = -c(X))
 valik1 <- df %>% select(Age, Netflix, Hulu, Prime.Video, Disney.) %>% filter(Age == "18+")
 
 # Loen kokku, mitu t√§isealistele m√µeldud filmi igal firmal on.
-netflix1 <- valik1 %>% filter(Netflix == 1) %>% count(Netflix)
-hulu1 <- valik1 %>% filter(Hulu == 1) %>% count(Hulu)
-amazon1 <- valik1 %>% filter(Prime.Video == 1) %>% count(Prime.Video)
-disney1 <- valik1 %>% filter(Disney. == 1) %>% count(Disney.)
+taisealisteleFilmid <- valik1 %>% summarise(Netflix_kokku = sum(Netflix),
+                                            Disney._kokku = sum(Disney.),
+                                            Hulu_kokku = sum(Hulu),
+                                            Amazon_kokku = sum(Prime.Video))
 
 # Moodustan uue data frame saadud andmetest, et oleks lihtsam joonist teha.
-firmad <- c("Netflix", "Hulu", "Prime Video", "Disney+")
-sagedus <- c(netflix1$n, hulu1$n, amazon1$n, disney1$n)
-taiskasvanuteleMoeldud <- data.frame(firmad, sagedus)
+firmad <- c("Netflix", "Disney","Hulu", "Prime Video")
+sagedused1 <- c(taisealisteleFilmid$Netflix_kokku, taisealisteleFilmid$Disney._kokku, taisealisteleFilmid$Hulu_kokku, taisealisteleFilmid$Amazon_kokku)
+filmiValik <- data.frame(firmad, sagedused1)
+
 
 # Joonistan tulemused v√§lja
-h1 <- ggplot(taiskasvanuteleMoeldud, aes(x = firmad, y = sagedus, fill = firmad)) + geom_col()+ scale_fill_manual("Platvormid", values = c("Netflix"="red", "Hulu" = "green ", "Prime Video " = "orange", "Disney+ " = "skyblue"))
-h1_pie <- ggplot(taiskasvanuteleMoeldud, aes(x=firmad, y=sagedus, fill=firmad)) + geom_bar(stat="identity", width=1) + coord_polar("y",start=0)
+h1 <- ggplot(filmiValik, aes(x = firmad, y = sagedused1), fill = firmad) + geom_col() + 
+  geom_text(aes(label=sagedused1), vjust=-0.3, size=3.5) + 
+  theme_minimal() +
+  labs(x = "Vaatamisplatvormid", y = "Filmide arvud", title = "18+ filmide arv erinevatel vaatamisplatvormidel. ") +
+  scale_fill_manual("Platvormid", values = c("Netflix"="red", "Hulu" = "green", "Prime Video " = "orange", "Disney+ " = "skyblue"))
+
+h1
+
+#h1 <- ggplot(taiskasvanuteleMoeldud, aes(x = firmad, y = sagedus, fill = firmad)) + geom_col()+ scale_fill_manual("Platvormid", values = c("Netflix"="red", "Hulu" = "green ", "Prime Video " = "orange", "Disney+ " = "skyblue"))
+#h1_pie <- ggplot(taiskasvanuteleMoeldud, aes(x=firmad, y=sagedus, fill=firmad)) + geom_bar(stat="identity", width=1) + coord_polar("y",start=0)
 
 
 
 # H2: Netflixi filmivaliku keskmine rating on suurem kui muudel vaatamisplatvormidel.
-# Eraldan vajalikud andmed, et kontrollida h¸poteesi. J‰tan alles ainult "rating" read.
+# Eraldan vajalikud andmed, et kontrollida hupoteesi.
 valik2 <- df %>% select(IMDb, Rotten.Tomatoes, Netflix, Hulu, Prime.Video, Disney.)
 
-# Eemaldan "rating"-utelt vırdlusm‰‰rad. (x/10 .. x/100)
-valik2$IMDb = substr(valik2$IMDb,1,3)
-valik2$Rotten.Tomatoes = substr(valik2$Rotten.Tomatoes,1,2)
 
-# Muudan "rating" v‰‰rtused int-t¸¸biks
-valik2$IMDb = as.double(valik2$IMDb)
-valik2$IMDb = valik2$IMDb*10
-valik2$Rotten.Tomatoes = as.double(valik2$Rotten.Tomatoes)
-
-# Eraldan filmid platvormi j‰rgi
+# Eraldan filmid platvormi j?rgi
 netflix2 <- valik2 %>% filter(Netflix == 1)
 hulu2 <- valik2 %>% filter(Hulu == 1)
 amazon2 <- valik2 %>% filter(Prime.Video == 1)
@@ -77,32 +104,88 @@ total_ratings <- c(Total_rating_netflix, Total_rating_hulu, Total_rating_amazon,
 
 rating <- data.frame(firmad2, ratingud2)
 total_ratings_df <- data.frame(firmad2_total, total_ratings )
-h2 <- ggplot(rating, aes(x= firmad2, y=ratingud2, fill=firmad2)) + geom_col() + scale_fill_manual("Platvormid", values = c("Netflix IMDb"="red","Netflix Rotten Tomatoes" = "red", "Hulu IMDb" = "green", "Hulu Rotten Tomatoes" = "green", "Prime Video IMDb" = "orange", "Prime Video Rotten Tomatoes" = "orange", "Disney+ IMDb" = "skyblue", "Disney+ Rotten Tomatoes" = "skyblue"))+ geom_text(aes(label=ratingud2),position=position_dodge(width = 0.9),vjust=-0.25) + ylim(0,100)
-h2_total <- ggplot(total_ratings_df, aes(x = firmad2_total, y= total_ratings, fill=firmad2_total)) + geom_col()
+h2 <- ggplot(rating, aes(x= firmad2, y=ratingud2, fill=firmad2)) + geom_col() + 
+  labs(x = "Vaatamisplatvormid", y = "Reiting", title = "Vaatamisplatvormide IMDb ja Rotten tomatoes keskmised reitingud") +
+  scale_fill_manual("Platvormid", values = c("Netflix IMDb"="red","Netflix Rotten Tomatoes" = "red", "Hulu IMDb" = "green", "Hulu Rotten Tomatoes" = "green", "Prime Video IMDb" = "orange", "Prime Video Rotten Tomatoes" = "orange", "Disney+ IMDb" = "skyblue", "Disney+ Rotten Tomatoes" = "skyblue")) +
+  geom_text(aes(label=ratingud2),position=position_dodge(width = 0.9),vjust=-0.25) + ylim(0,100)
 
-# H3: Netflixi filmivalik on k√µige suurem.
-valik3 <- df %>% select(Age, Netflix, Hulu, Prime.Video, Disney.) %>% filter(Age != "NA")
-netflix3 <- valik3 %>% filter(Netflix == 1) %>% count(Netflix)
-hulu3 <- valik3 %>% filter(Hulu == 1) %>% count(Hulu)
-amazon3 <- valik3 %>% filter(Prime.Video == 1) %>% count(Prime.Video)
-disney3 <- valik3 %>% filter(Disney. == 1) %>% count(Disney.)
 
-firmad3 <- c("Netflix", "Hulu", "Prime Video","Disney+")
-sagedus3 <- c(netflix3$n, hulu3$n, amazon3$n,disney3$n)
-filmiValik <- data.frame(firmad, sagedus3)
+h2_total <- ggplot(total_ratings_df, aes(x = firmad2_total, y= total_ratings, fill=firmad2_total)) + geom_col() +
+  labs(x = "Vaatamisplatvormid", y = "Reiting", title = "Vaatamisplatvormide IMDb ja Rotten tomatoes keskmised reitingud") +
+  geom_text(aes(label=total_ratings),position=position_dodge(width = 0.9),vjust=-0.25) + ylim(0,100)
 
-h3 <- ggplot(filmiValik, aes(x = firmad3, y = sagedus3, fill = firmad)) + geom_col()+ scale_fill_manual("Platvormid", values = c("Netflix"="red", "Hulu" = "green ", "Prime Video " = "orange", "Disney+ " = "skyblue"))
+h2
+h2_total
+
+
+# H3: Netflixi filmivalik on koige suurem.
+valik3 <- df %>% select(Netflix, Hulu, Prime.Video, Disney.)
+
+# Loen kokku, mitu filmi igal firmal on.
+filmideSaadavus <- valik3 %>% summarise(Netflix_kokku = sum(Netflix),
+                                            Disney._kokku = sum(Disney.),
+                                            Hulu_kokku = sum(Hulu),
+                                            Amazon_kokku = sum(Prime.Video))
+
+sagedused3 <- c(filmideSaadavus$Netflix_kokku, filmideSaadavus$Disney._kokku, filmideSaadavus$Hulu_kokku, filmideSaadavus$Amazon_kokku)
+filmideSagedus <- data.frame(firmad, sagedused3)
+
+# Joonistan tulemused v√§lja
+h3 <- ggplot(filmideSagedus, aes(x = firmad, y = sagedused3, fill = firmad)) + geom_col() + 
+  geom_text(aes(label=sagedused3), vjust=-0.3, size=3.5) +
+  scale_fill_manual("Platvormid", values = c("Netflix"="red", "Hulu" = "green ", "Prime Video " = "orange", "Disney+ " = "skyblue")) +
+  labs(x = "Vaatamisplatvormid", y = "Filmide arvud", title = "Filmide arv erinevatel vaatamisplatvormidel. ") 
+h3
+
+
+sagedusedProtsentides <- round(sagedused3/sum(sagedused3)*100)
+ggplot(filmideSagedus, aes(x="", y=sagedusedProtsentides, fill=firmad)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) + theme_minimal() +
+  labs(y = "Filmide protsent k√µikidest filmidest", title = "Filmide arv erinevatel vaatamisplatvormidel.")
+
+
+
+# Mis on k√µige populaarsemad ≈æanrid?
+Genres <- unlist(str_split(df$Genres, ",")) # Eraldan k√µik ≈æanrid koma koha pealt ning moodustan listi.
+zanriteSagedus <- data.frame(Genres)
+zanriteSagedus <- zanriteSagedus %>% count(Genres, sort = T) %>% arrange(desc(n))
+
+ggplot(data = zanriteSagedus, aes(Genres, n)) + geom_bar(stat="identity", fill="steelblue") +
+  geom_text(aes(label=n), vjust=-0.3, size=3.5) + theme_minimal() +
+  labs(x = "Genres", y = "Count")
+
+
+# Mis aastal tehtud filme on k√µige rohkem nendel kanalitel.
+aastateEsinemine <- df %>% count(Year,sort = T)  # Loen aasta arvud kokku ning sorteerin need √§ra.
+#ggplot(data = aastateEsinemine, aes(Year, n)) + geom_bar() # Tulbana 
+ggplot(data = aastateEsinemine, aes(Year, n)) + geom_line() + 
+  labs(x = "Year", y = "Count", title = "V√§lja lastud filmide arv") +
+  scale_x_continuous(limits = c(1915, 2025),   
+                     breaks = seq(1915, 2025, by = 10), 
+                     labels = paste0(seq(1915, 2025,by=10))) +
+  scale_y_continuous(limits = c(0, 1100),   
+                     breaks = seq(0, 1100, by = 150), 
+                     labels = paste0(seq(0, 1100,by=150)))
+
+
+
+
+
+
+
+
 
 
 # Kas vanusel ja rating-ul on korrelatsiooni?
 
 korr <- df %>% select(IMDb, Rotten.Tomatoes, Age)
 
-# Eemaldan "rating"-utelt vırdlusm‰‰rad. (x/10 .. x/100)
+# Eemaldan "rating"-utelt v?rdlusm??rad. (x/10 .. x/100)
 korr$IMDb = substr(korr$IMDb,1,3)
 korr$Rotten.Tomatoes = substr(korr$Rotten.Tomatoes,1,2)
 
-# Muudan "rating" v‰‰rtused int-t¸¸biks
+# Muudan "rating" v??rtused int-t??biks
 korr$IMDb = as.double(korr$IMDb)
 korr$IMDb = korr$IMDb*10
 korr$Rotten.Tomatoes = as.double(korr$Rotten.Tomatoes)
