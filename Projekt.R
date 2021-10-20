@@ -84,38 +84,34 @@ h1
 valik2 <- df %>% select(IMDb, Rotten.Tomatoes, Netflix, Hulu, Prime.Video, Disney.)
 
 
-# Eraldan filmid platvormi jargi
-netflix2 <- valik2 %>% filter(Netflix == 1)
-hulu2 <- valik2 %>% filter(Hulu == 1)
-amazon2 <- valik2 %>% filter(Prime.Video == 1)
-disney2 <- valik2 %>% filter(Disney. == 1)
 
-# Leian keskmise ratingu
-IMDb_mean_netflix = mean(netflix2$IMDb,trim=0.5, na.rm=TRUE)
-Rotten.Tomates_mean_netflix = mean(netflix2$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
-Total_rating_netflix = (IMDb_mean_netflix + Rotten.Tomates_mean_netflix ) / 2
+# Funktsioon selleks, et leida erinevad vaatamisplatvormide uldiseid reitingud ja et kood oleks puhtam. 
+reitinguteLeidmine <- function(data){
+  imdbKeskmine <- mean(data$IMDb,trim=0.5, na.rm=TRUE)
+  rottenTomatoKeskmine <- mean(data$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
+  totalKeskmine <- (imdbKeskmine + rottenTomatoKeskmine ) / 2
+  return (c(imdbKeskmine, rottenTomatoKeskmine, totalKeskmine))
+}
 
-IMDb_mean_hulu = mean(hulu2$IMDb,trim=0.5, na.rm=TRUE)
-Rotten.Tomates_mean_hulu = mean(hulu2$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
-Total_rating_hulu = (IMDb_mean_hulu + Rotten.Tomates_mean_hulu ) / 2
+# Eraldan filmid platvormi jargi js arvutan igale platvormile vastavad reitingud.
+netflixiReitingud <- reitinguteLeidmine(valik2 %>% filter(Netflix == 1))
+huluReitingud <- reitinguteLeidmine(valik2 %>% filter(Hulu == 1))
+amazoniReitingud <- reitinguteLeidmine(valik2 %>% filter(Prime.Video == 1))
+disneyReitingud <- reitinguteLeidmine(valik2 %>% filter(Disney. == 1))
 
-IMDb_mean_amazon = mean(amazon2$IMDb,trim=0.5, na.rm=TRUE)
-Rotten.Tomates_mean_amazon = mean(amazon2$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
-Total_rating_amazon = (IMDb_mean_amazon + Rotten.Tomates_mean_amazon ) / 2
 
-IMDb_mean_disney = mean(disney2$IMDb,trim=0.5, na.rm=TRUE)
-Rotten.Tomates_mean_disney = mean(disney2$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
-Total_rating_disney = (IMDb_mean_disney + Rotten.Tomates_mean_disney ) / 2
+firmad2 <- c("Netflix IMDb", "Netlfix Rotten Tomatoes", "Hulu IMDb", "Hulu Rotten Tomatoes", 
+             "Prime Video IMDb", "Prime Video Rotten Tomatoes", "Disney+ IMDb", "Disney+ Rotten Tomatoes")
 
-firmad2 <- c("Netflix IMDb", "Netlfix Rotten Tomatoes", "Hulu IMDb", "Hulu Rotten Tomatoes", "Prime Video IMDb", "Prime Video Rotten Tomatoes", "Disney+ IMDb", "Disney+ Rotten Tomatoes")
-firmad2_total <- c("Netflix", "Hulu", "Prime Video", "Disney+")
-ratingud2 <- c(IMDb_mean_netflix,Rotten.Tomates_mean_netflix,IMDb_mean_hulu,Rotten.Tomates_mean_hulu,IMDb_mean_amazon, Rotten.Tomates_mean_amazon, IMDb_mean_disney,Rotten.Tomates_mean_disney)
-total_ratings <- c(Total_rating_netflix, Total_rating_hulu, Total_rating_amazon, Total_rating_disney)
+ratingud2 <- c(netflixiReitingud[1],netflixiReitingud[2],huluReitingud[1],huluReitingud[2],
+               amazoniReitingud[1], amazoniReitingud[2], disneyReitingud[1], disneyReitingud[2])
+
+total_ratings <- c(netflixiReitingud[3], disneyReitingud[3], huluReitingud[3], amazoniReitingud[3])
 
 rating <- data.frame(firmad2, ratingud2)
-total_ratings_df <- data.frame(firmad2_total, total_ratings )
+total_ratings_df <- data.frame(firmad, total_ratings )
 
-#  Joonis kõigi filmide Rotten tomatoes-i ja IMDb reitingute keskmine (Rotten tomatoes ja IMDb eraldi) vaatamisplatvormi kohta.
+#  Joonis koigi filmide Rotten tomatoes-i ja IMDb reitingute keskmine (Rotten tomatoes ja IMDb eraldi) vaatamisplatvormi kohta.
 h2 <- ggplot(rating, aes(x= firmad2, y=ratingud2, fill=firmad2)) + geom_col() +
   labs(x = "Vaatamisplatvormid", 
        y = "Reiting", 
@@ -127,8 +123,12 @@ h2 <- ggplot(rating, aes(x= firmad2, y=ratingud2, fill=firmad2)) + geom_col() +
   scale_colour_brewer(palette = "YlOrRd", direction = - 1) + 
   scale_fill_brewer(palette = "BuPu")
 
-#  Joonis kõigi filmide Rotten tomatoes-i ja IMDb reitingute keskmine ((Rotten tomato + IMDb) / 2) vaatamisplatvormi kohta.
-h2_total <- ggplot(total_ratings_df, aes(x = firmad2_total, y= total_ratings, fill=firmad2_total)) + geom_col() +
+h2
+
+
+
+#  Joonis koigi filmide Rotten tomatoes-i ja IMDb reitingute keskmine ((Rotten tomato + IMDb) / 2) vaatamisplatvormi kohta.
+h2_total <- ggplot(total_ratings_df, aes(x = firmad, y= total_ratings, fill=firmad)) + geom_col() +
   labs(x = "Vaatamisplatvormid", 
        y = "Keskmine reiting", 
        title = "Vaatamisplatvormide IMDb ja Rotten Tomatoes keskmised reitingud",
@@ -139,7 +139,7 @@ h2_total <- ggplot(total_ratings_df, aes(x = firmad2_total, y= total_ratings, fi
   scale_colour_brewer(palette = "YlOrRd", direction = - 1) + 
   scale_fill_brewer(palette = "BuPu")
 
-h2
+
 h2_total
 ###############################################
 
@@ -249,6 +249,7 @@ filmideKorduvus <- df %>% select (Title, IMDb, Rotten.Tomatoes, Netflix, Hulu, P
 
 
 ###############################################
+
 
 
 
