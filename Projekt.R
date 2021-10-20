@@ -33,24 +33,24 @@ naVaba <- na.omit(df)
 kirjeldused <- naVaba %>% mutate(keskmine_reiting = (IMDb + Rotten.Tomatoes) / 2)
 
 
-kirjeldused <- kirjeldused %>% summarise(suurim_keskmine_reiting = max(keskmine_reiting), # Mis on kõige suurem keskmine reiting filmile.
+kirjeldused <- kirjeldused %>% summarise(suurim_keskmine_reiting = max(keskmine_reiting), # Mis on koige suurem keskmine reiting filmile.
                                      koigi_keskmine_reiting = mean(keskmine_reiting), # Mis on keskmine filmide reiting
-                                     vaikseim_keskmine_reiting = min(keskmine_reiting), # Mis on kõige madalam keskmine reitingfilmile.
-                                     pikim_film = max(Runtime), # Mis on kõige pikem film.
+                                     vaikseim_keskmine_reiting = min(keskmine_reiting), # Mis on koige madalam keskmine reitingfilmile.
+                                     pikim_film = max(Runtime), # Mis on koige pikem film.
                                      keskmine_film = mean(Runtime), # Keskmine filmi kestvus. 
-                                     luhim_film = min(Runtime)) # Mis on kõige lühem film.
+                                     luhim_film = min(Runtime)) # Mis on koige luhem film.
 
 ###############################################
 
 
 
 ###############################################
-### H1: Disney+ edastab kõige vähem täiskasvanutele mõeldud sisuga filme.
+### H1: Disney+ edastab kõige vähem taiskasvanutele moeldud sisuga filme.
 
-# Eraldan vajalikud andmed, et kontrollida seda hüpoteesi. Jätan alles ainult read, kus filmi vanusepiirang on 18+
+# Eraldan vajalikud andmed, et kontrollida seda hupoteesi. Jätan alles ainult read, kus filmi vanusepiirang on 18+
 valik1 <- df %>% select(Age, Netflix, Hulu, Prime.Video, Disney.) %>% filter(Age == "18+")
 
-# Loen kokku, mitu täisealistele mõeldud filmi igal firmal on.
+# Loen kokku, mitu taisealistele moeldud filmi igal firmal on.
 taisealisteleFilmid <- valik1 %>% summarise(Netflix_kokku = sum(Netflix),
                                             Disney._kokku = sum(Disney.),
                                             Hulu_kokku = sum(Hulu),
@@ -62,7 +62,7 @@ sagedused1 <- c(taisealisteleFilmid$Netflix_kokku, taisealisteleFilmid$Disney._k
 filmiValik <- data.frame(firmad, sagedused1)
 
 
-# Joonistan tulemused välja
+# Joonistan tulemused valja
 h1 <- ggplot(filmiValik, aes(x = reorder(firmad, -sagedused1), y = sagedused1,fill = firmad)) + geom_col() + 
   geom_text(aes(label=sagedused1), vjust=-0.3, size=3.5) +
   labs(x = "Vaatamisplatvormid", 
@@ -90,6 +90,7 @@ valik2 <- df %>% select(IMDb, Rotten.Tomatoes, Netflix, Hulu, Prime.Video, Disne
 
 
 # Funktsioon selleks, et leida erinevad vaatamisplatvormide uldiseid reitingud ja et kood oleks puhtam. 
+# Sisendiks annan andmed, mille puhul on vaja keskmised leida.
 reitinguteLeidmine <- function(data){
   imdbKeskmine <- mean(data$IMDb,trim=0.5, na.rm=TRUE)
   rottenTomatoKeskmine <- mean(data$Rotten.Tomatoes, trim=0.5, na.rm=TRUE)
@@ -153,13 +154,18 @@ h2_total
 ### H3: Netflixi filmivalik on koige suurem.
 valik3 <- df %>% select(Netflix, Hulu, Prime.Video, Disney.)
 valik3 <- na.omit(valik3)
-pikkFormaat <- melt(valik3, measure.vars = 1:4) %>% filter(value == 1) # Andmete teisendamine laiast formaadist pikka formaati.
+uusdf <- melt(valik3, measure.vars = 1:4) %>% filter(value == 1) # Andmete teisendamine laiast formaadist pikka formaati.
 
-# Loen kokku, mitu filmi igal vaatamisplatvormil on.
-netflix3 <- pikkFormaat %>% filter(variable == "Netflix") %>% count(variable)
-hulu3 <- pikkFormaat %>% filter(variable == "Hulu") %>% count(variable)
-amazon3 <- pikkFormaat %>% filter(variable == "Prime.Video") %>% count(variable)
-disney3 <- pikkFormaat %>% filter(variable == "Disney.") %>% count(variable)
+# Funktsioon, selleks et lugeda kokku, mitu filmi on etteantud vaatamisPlatvormil.
+# Sisendiks annan andmed ja Stringi, mis on siis muutuja, mis andmetest valja sorteeritakse
+filmideArvPlatvormil <- function(data,vtplatvorm){
+  return (data %>% filter(variable == vtplatvorm) %>% count(variable))
+}
+
+netflix3 <- filmideArvPlatvormil(uusdf,"Netflix")
+hulu3 <- filmideArvPlatvormil(uusdf,"Hulu")
+amazon3 <- filmideArvPlatvormil(uusdf,"Prime.Video")
+disney3 <- filmideArvPlatvormil(uusdf,"Disney.")
 
 
 firmadeSagedused <- c(netflix3[1,2],  disney3[1,2], hulu3[1,2], amazon3[1,2])
