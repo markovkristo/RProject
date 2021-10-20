@@ -123,28 +123,38 @@ h2_total
 
 # H3: Netflixi filmivalik on koige suurem.
 valik3 <- df %>% select(Netflix, Hulu, Prime.Video, Disney.)
+valik3 <- na.omit(valik3)
+pikkFormaat <- melt(valik3, measure.vars = 1:4) %>% filter(value == 1) # Andmete teisendamine laiast formaadist pikka formaati.
 
-# Loen kokku, mitu filmi igal firmal on.
-filmideSaadavus <- valik3 %>% summarise(Netflix_kokku = sum(Netflix),
-                                            Disney._kokku = sum(Disney.),
-                                            Hulu_kokku = sum(Hulu),
-                                            Amazon_kokku = sum(Prime.Video))
+# Loen kokku, mitu filmi igal vaatamisplatvormil on.
+netflix3 <- pikkFormaat %>% filter(variable == "Netflix") %>% count(variable)
+hulu3 <- pikkFormaat %>% filter(variable == "Hulu") %>% count(variable)
+amazon3 <- pikkFormaat %>% filter(variable == "Prime.Video") %>% count(variable)
+disney3 <- pikkFormaat %>% filter(variable == "Disney.") %>% count(variable)
 
-sagedused3 <- c(filmideSaadavus$Netflix_kokku, filmideSaadavus$Disney._kokku, filmideSaadavus$Hulu_kokku, filmideSaadavus$Amazon_kokku)
-filmideSagedus <- data.frame(firmad, sagedused3)
 
-# Joonistan tulemused välja
-h3 <- ggplot(filmideSagedus, aes(x = firmad, y = sagedused3, fill = firmad)) + geom_col() + 
+firmadeSagedused <- c(netflix3[1,2],  disney3[1,2], hulu3[1,2], amazon3[1,2])
+
+# Moodustan uue dataframe, et oleks kergem joonist teha.
+filmideSagedus <- data.frame(firmad, firmadeSagedused)
+
+
+# Teen iga Vaatamisplatvormi filmidearvu kohta tulpdiagrammi.
+h3 <- ggplot(filmideSagedus, aes(x = firmad, y = firmadeSagedused, fill = firmad)) + geom_col() + 
   geom_text(aes(label=sagedused3), vjust=-0.3, size=3.5) +
   labs(x = "Vaatamisplatvormid", y = "Filmide arvud", title = "Filmide arv erinevatel vaatamisplatvormidel. ") + scale_colour_brewer(palette = "YlOrRd", direction = - 1) + 
-  scale_fill_brewer(palette = "BuPu")
+  scale_fill_brewer(palette = "BuPu") +
+  scale_y_continuous(limits = c(0, 4200),   
+                     breaks = seq(0, 4200, by = 500), 
+                     labels = paste0(seq(0, 4200,by=500)))
 h3
 
 
-sagedusedProtsentides <- round(sagedused3/sum(sagedused3)*100)
+sagedusedProtsentides <- round(firmadeSagedused/sum(firmadeSagedused)*100)
 ggplot(filmideSagedus, aes(x="", y=sagedusedProtsentides, fill=firmad)) +
   geom_bar(stat="identity", width=1, color="white") +
-  coord_polar("y", start=0) + theme_minimal() +
+  geom_text(aes(label=sagedusedProtsentides), hjust="inward") +
+  coord_polar("y", start=0) + 
   labs(y = "Filmide protsent kõikidest filmidest", title = "Filmide arv erinevatel vaatamisplatvormidel.")+ scale_colour_brewer(palette = "YlOrRd", direction = - 1) + 
   scale_fill_brewer(palette = "BuPu")
 
@@ -173,7 +183,7 @@ ggplot(data = aastateEsinemine, aes(Year, n)) + geom_line() +
 
 
 
-# Uurin, mis filmi näidatakse mitmelt kanalilt
+# Uurin, mis filme näidatakse mitmelt vaatamisplatvormilt. 
 filmideKorduvus <- df %>% select (Title, IMDb, Rotten.Tomatoes, Netflix, Hulu, Prime.Video, Disney.) %>% mutate(korduvus = Netflix + Hulu + Disney. + Prime.Video)  %>% count(korduvus, sort = T)
 
 
