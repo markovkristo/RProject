@@ -41,6 +41,10 @@ kirjeldused <- kirjeldused %>% summarise(suurim_keskmine_reiting = max(keskmine_
                                      luhim_film = min(Runtime)) # Mis on kõige lühem film.
 
 ###############################################
+
+
+
+###############################################
 ### H1: Disney+ edastab kõige vähem täiskasvanutele mõeldud sisuga filme.
 
 # Eraldan vajalikud andmed, et kontrollida seda hüpoteesi. Jätan alles ainult read, kus filmi vanusepiirang on 18+
