@@ -173,6 +173,8 @@ ggplot(data = aastateEsinemine, aes(Year, n)) + geom_line() +
 
 
 
+# Uurin, mis filmi näidatakse mitmelt kanalilt
+filmideKorduvus <- df %>% select (Title, IMDb, Rotten.Tomatoes, Netflix, Hulu, Prime.Video, Disney.) %>% mutate(korduvus = Netflix + Hulu + Disney. + Prime.Video)  %>% count(korduvus, sort = T)
 
 
 
